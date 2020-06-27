@@ -3,10 +3,18 @@ from random import choice
 class TSP:
 	"""
 	Class to initiate and solve instances
-	of Traveling Salesman Problem
+	of Traveling Salesman Problem using
+	Greedy, 2OPT and 3OPT.
 	"""
 
 	def __init__(self, vertices, edges=[]):
+		"""
+		Initialize TSP Object
+		args:
+			vertices: List of nodes in graph
+			edges: (Optional) List of tuples where 
+				each tuple is format (u,v,w)
+		"""
 		self.nodes = vertices
 		self.n = len(vertices)
 
@@ -19,6 +27,10 @@ class TSP:
 
 
 	def addEdge(self, u, v, w):
+		"""
+		Method to add directed edge from 
+		vertex u to v with numeric weight w.
+		"""
 		for node in [u, v]:
 			if self.adjacency.get(node) == None:
 				raise KeyError(
@@ -35,6 +47,10 @@ class TSP:
 
 
 	def sortAdjacency(self):
+		"""
+		Method to sort outgoing edges out of each vertex
+		based on edge weight
+		"""
 		self.adjacency = {
 			v: sorted(self.adjacency[v], key=lambda e: e[1])
 			for v in self.nodes
@@ -42,6 +58,11 @@ class TSP:
 
 
 	def greedyTour(self, startnode=None, randomized=False):
+		"""
+		Method to create a greedy tour on object's 
+		graph with optional randomization on the choice
+		of next edge to be added.
+		"""
 		nodevisited = {v: False for v in self.nodes}
 		tourlength = 0
 		tour = []
@@ -115,7 +136,10 @@ class TSP:
 
 	@staticmethod
 	def swapEdgesTwoOPT(tour, i, j):
-
+		"""
+		Method to swap two edges and replace with 
+		their cross.
+		"""
 		newtour = tour[:i+1]
 		newtour.extend(reversed(tour[i+1:j+1]))
 		newtour.extend(tour[j+1:])
@@ -124,7 +148,9 @@ class TSP:
 
 	@staticmethod
 	def swapEdgesThreeOPT(tour, i, j, k, case):
-
+		"""
+		Method to swap edges from 3OPT
+		"""
 		if case == 1:
 			newtour = TSP.swapEdgesTwoOPT(tour.copy(), i, k)
 
@@ -162,13 +188,22 @@ class TSP:
 
 
 	def calculateTourLength(self, tour):
+		"""
+		Method to return length of a tour
+		"""
 		tourlen = 0
 		for i in range(len(tour)-1):
-			tourlen += self.edges[(tour[i], tour[i+1])]
+			try:
+				tourlen += self.edges[(tour[i], tour[i+1])]
+			except KeyError:
+				print(f"({tour[i]}, {tour[i+1]}) edge is not part of graph")
 		return tourlen
 
 
 	def twoOPT(self, tour):
+		"""
+		Method to create new tour using 2OPT
+		"""
 		n = len(tour)
 		if n <= 2:
 			return tour, 0
@@ -198,6 +233,9 @@ class TSP:
 
 
 	def threeOPT(self, tour):
+		"""
+		Method to create new tour using 3OPT
+		"""
 		n = len(tour)
 		if n <= 2:
 			return [], 0
@@ -249,7 +287,7 @@ class TSP:
 		return tour, tourlen
 
 
-def createGraph(n):
+def createRandomCompleteGraph(n):
 	from random import randint
 	v = [i for i in range(1, n+1)]
 
@@ -280,135 +318,26 @@ def callAndTime(func, args):
 	return ret, timetaken
 
 
-def test2(n=200):
-	v, e, M = createGraph(n)
+def test2(n=30):
+	v, e, M = createRandomCompleteGraph(n)
 	tsp = TSP(v, e)
 
+	print("Greedy tour")
 	greedytour, greedytourlen = tsp.greedyTour()
-	print(greedytourlen)
+	print(greedytour, greedytourlen)
 
 	print("\n2OPT")
 	twoopttour, twooptlen1 = tsp.twoOPT(greedytour)
-	print(twooptlen1)
+	print(twoopttour, twooptlen1)
 
-	print("\n3OPT Using greedy")
+	print("\n3OPT Using greedytour")
 	(threeopttour, threeoptlen), time = callAndTime(tsp.threeOPT, greedytour)
-	print(threeoptlen, time)
+	print(threeopttour, threeoptlen, time)
 
-	print("\n3OPT Using 2OPT")
+	print("\n3OPT Using 2OPT tour")
 	(threeopttour, threeoptlen), time = callAndTime(tsp.threeOPT, twoopttour)
-	print(threeoptlen, time)
+	print(threeopttour, threeoptlen, time)
 
-
-def test(n=150):
-	
-	from multiprocessing import Pool
-	import concurrent.futures
-	from pytsp import k_opt_tsp, nearest_neighbor_tsp
-	import time
-
-	
-	v, e, M = createGraph(n)
-
-	#e = [(i,j,randint(1, 10)) for i in v for j in v if i!=j and i!=5]
-	tsp = TSP(v, e)
-	start = time.time()
-
-	p = Pool(n)
-	greedysols = p.map(tsp.greedyTour, v)
-	twooptsols = p.map(tsp.twoOPT, [sol[0] for sol in greedysols])
-
-	delta = time.time() - start
-	print(delta)
-
-	for ind in range(n):
-		startnode = v[ind]
-		print(f"Start node {startnode}, " + \
-			f"greedy = {greedysols[ind][1]} 2opt = {twooptsols[ind][1]}")
-	
-	start = time.time()
-	greedysols = []
-	twooptsols = []
-	for startnode in v:
-		sol = tsp.greedyTour(startnode)
-		greedysols.append(sol)
-		twooptsols.append(tsp.twoOPT(sol[0]))
-
-	delta = time.time() - start
-	print(delta)
-
-	for ind in range(n):
-		startnode = v[ind]
-		print(f"Start node {startnode}, " + \
-			f"greedy = {greedysols[ind][1]} 2opt = {twooptsols[ind][1]}")
-	
-	
-	'''
-	print(mingreedy, mintwoopt)
-
-	
-	print(tour, tourlen)
-
-	
-	print(newtour, newtourlen)
-
-	newtour, newtourlen = tsp.twoOPT(newtour, newtourlen)
-	print(newtour, newtourlen)
-
-	actualnewtourlen = 0
-	for i in range(len(newtour)-1):
-		actualnewtourlen += tsp.edges[(newtour[i], newtour[i+1])]
-
-	print(actualnewtourlen)
-
-	
-	start = time.time()
-
-	sols = []
-	for startnode in v:
-		sols.append(tsp.greedyTour(startnode, False))
-	for sol in sols:
-		print(sol[1])
-	
-	print(time.time() - start)
-
-	print("\n")
-
-	start = time.time()
-	
-	p = Pool(n)
-	
-	sols = p.map(tsp.greedyTour, v)
-	
-	with concurrent.futures.ProcessPoolExecutor() as executor:
-		sols = [executor.submit(tsp.greedyTour, v1, False) for v1 in v]
-		for f in concurrent.futures.as_completed(sols):
-			print(f.result()[1])
-
-	#for sol in sols:
-	#	print(sol[1])
-	print(time.time()-start)
-
-	start = time.time()
-	nntsp_tour = nearest_neighbor_tsp.nearest_neighbor_tsp(M) + [0]
-	print(time.time()-start)
-
-	start = time.time()
-	opt_tour = k_opt_tsp.tsp_3_opt(M) + [0]
-	print(time.time()-start)
-
-	tourlen_nntsp = 0
-	for ind in range(len(nntsp_tour)-1):
-		tourlen_nntsp += M[nntsp_tour[ind], nntsp_tour[ind+1]]
-
-	tourlen_3opt = 0
-	for ind in range(len(opt_tour)-1):
-		tourlen_3opt += M[opt_tour[ind], opt_tour[ind+1]]
-	print("\n")
-	#print([v[ind] for ind in nntsp_tour], tourlen_nntsp)
-	#print([v[ind] for ind in opt_tour], tourlen_3opt)
-	print(tourlen_3opt)
-	'''
 
 if __name__ == '__main__':
 	test2()
