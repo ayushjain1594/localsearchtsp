@@ -114,10 +114,51 @@ class TSP:
 
 
 	@staticmethod
-	def swapEdges(tour, i, j):
-		vi, vj = tour[i+1], tour[j+1]
-		tour[j+1], tour[i+1] = vi, vj
-		return tour
+	def swapEdgesTwoOPT(tour, i, j):
+
+		newtour = tour[:i+1]
+		newtour.extend(reversed(tour[i+1:j+1]))
+		newtour.extend(tour[j+1:])
+
+		return newtour
+
+	@staticmethod
+	def swapEdgesThreeOPT(tour, i, j, k, case):
+
+		if case == 1:
+			newtour = TSP.swapEdgesTwoOPT(tour.copy(), i, k)
+
+		elif case == 2:
+			newtour = TSP.swapEdgesTwoOPT(tour.copy(), i, j)
+
+		elif case == 3:
+			newtour = TSP.swapEdgesTwoOPT(tour.copy(), j, k)
+
+		elif case == 4:
+			newtour = tour[:i+1]
+			newtour.extend(tour[j+1:k+1])
+			newtour.extend(reversed(tour[i+1:j+1]))
+			newtour.extend(tour[k+1:])
+
+		elif case == 5:
+			newtour = tour[:i+1]
+			newtour.extend(reversed(tour[j+1:k+1]))
+			newtour.extend(tour[i+1:j+1])
+			newtour.extend(tour[k+1:])
+
+		elif case == 6:
+			newtour = tour[:i+1]
+			newtour.extend(reversed(tour[i+1:j+1]))
+			newtour.extend(reversed(tour[j+1:k+1]))
+			newtour.extend(tour[k+1:])
+
+		elif case == 7:
+			newtour = tour[:i+1]
+			newtour.extend(tour[j+1:k+1])
+			newtour.extend(tour[i+1:j+1])
+			newtour.extend(tour[k+1:])
+
+		return newtour
 
 
 	def calculateTourLength(self, tour):
@@ -128,26 +169,85 @@ class TSP:
 
 
 	def twoOPT(self, tour):
-		tourlen = self.calculateTourLength(tour)
 		n = len(tour)
+		if n <= 2:
+			return tour, 0
+
+		tourlen = self.calculateTourLength(tour)
+		
 		improved = True
+
 		while improved:
 			improved = False
-			for i in range(n-4):
-				for j in range(i+2, n-2):
-					neighboringtour = TSP.swapEdges(tour.copy(), i, j)
-					neighbortourlen = self.calculateTourLength(neighboringtour)
 
-					if neighbortourlen < tourlen:
-						print(neighbortourlen - tourlen)
-						tour = neighboringtour
-						tourlen = neighbortourlen
+			for i in range(n):
+				for j in range(i+2, n-1):
+
+					a = self.edges[(tour[i],tour[i+1])]
+					b = self.edges[(tour[j], tour[j+1])]
+					c = self.edges[(tour[i], tour[j])]
+					d = self.edges[(tour[i+1], tour[j+1])]
+					delta = - a - b +  c + d
+					if delta < 0:
+						#print(delta, i, j)
+						tour = TSP.swapEdgesTwoOPT(tour.copy(), i, j)
+						tourlen += delta
 						improved = True
 
 		return tour, tourlen
 
-	def threeOPT(self):
-		pass
+
+	def threeOPT(self, tour):
+		n = len(tour)
+		if n <= 2:
+			return [], 0
+
+		tourlen = self.calculateTourLength(tour)
+		improved = True
+		while improved:
+			improved = False
+			for i in range(n):
+				for j in range(i+2, n-1):
+					for k in range(j+2, n-2+(i>0)):
+						#print(i, j, k)
+						a, b = tour[i], tour[i+1]
+						c, d = tour[j], tour[j+1]
+						e, f = tour[k], tour[k+1]
+
+						deltacase = {
+							1: self.edges[a,e] + self.edges[b,f] \
+								- self.edges[a,b] - self.edges[e,f],
+
+							2: self.edges[a,c] + self.edges[b,d] \
+								- self.edges[a,b] - self.edges[c,d],
+
+							3: self.edges[c,e] + self.edges[d,f] \
+								- self.edges[c,d] - self.edges[e,f],
+
+							4: self.edges[a,d] + self.edges[e,c] + self.edges[b,f]\
+								- self.edges[a,b] - self.edges[c,d] - self.edges[e,f],
+
+							5: self.edges[a,e] + self.edges[d,b] + self.edges[c,f]\
+								- self.edges[a,b] - self.edges[c,d] - self.edges[e,f],
+
+							6: self.edges[a,c] + self.edges[b,e] + self.edges[d,f]\
+								- self.edges[a,b] - self.edges[c,d] - self.edges[e,f],
+
+							7: self.edges[a,d] + self.edges[e,b] + self.edges[c,f]\
+								- self.edges[a,b] - self.edges[c,d] - self.edges[e,f],
+						}
+
+						bestcase = min(deltacase, key=deltacase.get)
+
+						if deltacase[bestcase] < 0:
+							#print(deltacase[bestcase], i, j, k, bestcase)
+							tour = TSP.swapEdgesThreeOPT(tour.copy(), i, j, k, case=bestcase)
+							#print(self.calculateTourLength(tour), tourlen + deltacase[bestcase])
+							tourlen += deltacase[bestcase]
+							improved = True
+
+		return tour, tourlen
+
 
 def createGraph(n):
 	from random import randint
@@ -168,18 +268,37 @@ def createGraph(n):
 
 	import numpy as np
 	M = np.array(M)
-	#print(M)
+	#print(M, "\n")
 	return v, e, M
 
-def test2(n=30):
+
+def callAndTime(func, args):
+	import time
+	start = time.time()
+	ret = func(args)
+	timetaken = time.time() - start
+	return ret, timetaken
+
+
+def test2(n=200):
 	v, e, M = createGraph(n)
 	tsp = TSP(v, e)
 
 	greedytour, greedytourlen = tsp.greedyTour()
-	twoopttour, twooptlen = tsp.twoOPT(greedytour)
+	print(greedytourlen)
 
-	print(greedytour, greedytourlen)
-	print(twoopttour, twooptlen)
+	print("\n2OPT")
+	twoopttour, twooptlen1 = tsp.twoOPT(greedytour)
+	print(twooptlen1)
+
+	print("\n3OPT Using greedy")
+	(threeopttour, threeoptlen), time = callAndTime(tsp.threeOPT, greedytour)
+	print(threeoptlen, time)
+
+	print("\n3OPT Using 2OPT")
+	(threeopttour, threeoptlen), time = callAndTime(tsp.threeOPT, twoopttour)
+	print(threeoptlen, time)
+
 
 def test(n=150):
 	
