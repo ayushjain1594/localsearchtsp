@@ -1,50 +1,16 @@
 from random import choice
 
-class TSP:
+from graph import Graph
+
+class TSP(Graph):
 	"""
 	Class to initiate and solve instances
 	of Traveling Salesman Problem using
 	Greedy, 2OPT and 3OPT.
 	"""
-
 	def __init__(self, vertices, edges=[]):
-		"""
-		Initialize TSP Object
-		args:
-			vertices: List of nodes in graph
-			edges: (Optional) List of tuples where 
-				each tuple is format (u,v,w)
-		"""
-		self.nodes = vertices
-		self.n = len(vertices)
-
-		self.adjacency = {v: [] for v in self.nodes}
-		self.edges = {}
-
-		if len(edges) > 0:
-			for edge in edges:
-				self.addEdge(*edge)
-
-
-	def addEdge(self, u, v, w):
-		"""
-		Method to add directed edge from 
-		vertex u to v with numeric weight w.
-		"""
-		for node in [u, v]:
-			if self.adjacency.get(node) == None:
-				raise KeyError(
-					f"Node {node} does not belong to graph"
-				)
-		if isinstance(w, int) or isinstance(w, float):
-			self.adjacency[u].append((v, w))
-			self.edges[(u, v)] = w
-
-		else:
-			raise TypeError(
-				f"Weight {w} must be either type int or float"
-			)
-
+		super().__init__(vertices, edges)
+		
 
 	def sortAdjacency(self):
 		"""
@@ -287,60 +253,10 @@ class TSP:
 		return tour, tourlen
 
 
-def createRandomCompleteGraph(n):
-	from random import randint
-	v = [i for i in range(1, n+1)]
-
-	e = []
-	M = [[0 for v1 in v] for v2 in v]
-	for ind1, i in enumerate(v):
-		ind2 = ind1+1
-		for j in v[ind1+1:]:
-			if i != j:
-				w = randint(1, 100)
-				e.append((i,j,w))
-				e.append((j,i,w))
-				M[ind1][ind2] = w
-				M[ind2][ind1] = w
-				ind2 += 1
-
-	import numpy as np
-	M = np.array(M)
-	#print(M, "\n")
-	return v, e, M
-
-
-def callAndTime(func, args):
-	import time
-	start = time.time()
-	ret = func(args)
-	timetaken = time.time() - start
-	return ret, timetaken
-
-
-def test2(n=30):
-	v, e, M = createRandomCompleteGraph(n)
-	tsp = TSP(v, e)
-
-	print("Greedy tour")
-	greedytour, greedytourlen = tsp.greedyTour()
-	print(greedytour, greedytourlen)
-
-	print("\n2OPT")
-	twoopttour, twooptlen1 = tsp.twoOPT(greedytour)
-	print(twoopttour, twooptlen1)
-
-	print("\n3OPT Using greedytour")
-	(threeopttour, threeoptlen), time = callAndTime(tsp.threeOPT, greedytour)
-	print(threeopttour, threeoptlen, time)
-
-	print("\n3OPT Using 2OPT tour")
-	(threeopttour, threeoptlen), time = callAndTime(tsp.threeOPT, twoopttour)
-	print(threeopttour, threeoptlen, time)
-
 
 if __name__ == '__main__':
-	test2()
+	pass
+
 
 
 
