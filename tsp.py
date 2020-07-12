@@ -9,14 +9,23 @@ class TSP(Graph):
 	Greedy, 2OPT and 3OPT.
 	"""
 	def __init__(self, vertices, edges=[]):
+		"""
+		Initialize graph object 
+		args:
+			vertices: List of nodes in graph
+			edges: (Optional) List of tuples where 
+				each tuple is format (u,v,w)
+		"""
 		super().__init__(vertices, edges)
 		
 
 	def sortAdjacency(self):
 		"""
-		Method to sort outgoing edges out of each vertex
+		Method to sort inplace outgoing edges out of each vertex
 		based on edge weight
 		"""
+
+		# second argument of tuple 'e' is weight
 		self.adjacency = {
 			v: sorted(self.adjacency[v], key=lambda e: e[1])
 			for v in self.nodes
@@ -28,42 +37,71 @@ class TSP(Graph):
 		Method to create a greedy tour on object's 
 		graph with optional randomization on the choice
 		of next edge to be added.
+		args:
+			startnode(optional): specify a starting node 
+				for greedy algorithm. Keyerror is raised
+				if not part of graph nodes.
+			randomized(optional): boolean
+				If true, algorithm will randomly (uniformly)
+				choose one of next three nodes with lowest 
+				added cost.
+		return:
+			tour: List of nodes in the tour including
+				start node added at the end
+			tourlen: int/float based on edge weights
+				This is the length of tour.
 		"""
+
+		# tracker for nodes that have been visited
 		nodevisited = {v: False for v in self.nodes}
+
+		# initializing empty tour
 		tourlength = 0
 		tour = []
 
+		# sort adjacency lists of outgoing edges for each vertex
 		self.sortAdjacency()
 
 		try:
+			# if specified, else pick first node in the graph
 			if startnode:
 				currentnode = startnode
 			else:
 				currentnode = self.nodes[0]
 				startnode = currentnode
+
 			nodevisited[startnode] = True
 			tour.append(startnode)
 			
 
 			while(len(tour) < self.n):
+
+				# track if next node was found and added to tour
 				flag = False
+
+				# get list of tuples (v, weight) of adjacent nodes
 				adjacentnodes = self.adjacency.get(currentnode)
 
 				if len(adjacentnodes) == 0:
+					# there are no outgoing edges from current node.
+					# the graph is disconnnect
 					print("Disconnected Graph")
 					return tour, tourlength
 
 				if randomized:
 					nextthree = []
 					count = 0
+					# get next (up to) three nodes that have not been visited
+					# from sorted adjacency list
 					for v, w in self.adjacency.get(currentnode):
 						if not nodevisited[v]:
 							nextthree.append((v, w))
 							count += 1
-						if count == 2:
+						if count == 3:
 							break
 
 					if len(nextthree) > 0:
+						# uniformly choose one
 						v, w = nextthree[choice(range(len(nextthree)))]
 						tour.append(v)
 						nodevisited[v] = True
@@ -73,6 +111,7 @@ class TSP(Graph):
 
 
 				else:
+					# if not randomized
 					for v, w in self.adjacency.get(currentnode):
 						if not nodevisited[v]:
 							tour.append(v)
@@ -86,11 +125,18 @@ class TSP(Graph):
 					print("Disconnected graph")
 					return tour, tourlength
 
-
+			# add starting node at the end of tour
 			tour.append(startnode)
+
+			# add weight of last edges
+			flag = False
 			for v, w in self.adjacency.get(currentnode):
 				if v == startnode:
 					tourlength += w
+					flag = True
+			if flag == False:
+				print(f"Missing edge ({currentnode}, {startnode})")
+				print("Tour may not be feasible")
 
 		except IndexError as e:
 			print(e)
@@ -155,7 +201,14 @@ class TSP(Graph):
 
 	def calculateTourLength(self, tour):
 		"""
-		Method to return length of a tour
+		Method to return length of a tour given
+		all tour edges are part of graph
+		args:
+			tour: List of nodes of graph
+		return:
+			tourlen: int/float 
+				Length of tour. If any edges is 
+				missing, returns zero.
 		"""
 		tourlen = 0
 		for i in range(len(tour)-1):
@@ -169,13 +222,23 @@ class TSP(Graph):
 	def twoOPT(self, tour):
 		"""
 		Method to create new tour using 2OPT
+		args:
+			tour: List of nodes forming a cycle
+		return:
+			tour: List of nodes forming a cycle
+				Two optimal tour
+			tourlen: int/float
+				Length of two optimal tour
 		"""
 		n = len(tour)
 		if n <= 2:
+			# no cycle possible
 			return tour, 0
 
+		# length of provided tour
 		tourlen = self.calculateTourLength(tour)
 		
+		# tracking improvemnt in tour
 		improved = True
 
 		while improved:
@@ -188,6 +251,9 @@ class TSP(Graph):
 					b = self.edges[(tour[j], tour[j+1])]
 					c = self.edges[(tour[i], tour[j])]
 					d = self.edges[(tour[i+1], tour[j+1])]
+
+					# benefit from swapping i,i+1 and j,j+1
+					# with i,j and i+1,j+1
 					delta = - a - b +  c + d
 					if delta < 0:
 						#print(delta, i, j)
@@ -201,14 +267,27 @@ class TSP(Graph):
 	def threeOPT(self, tour):
 		"""
 		Method to create new tour using 3OPT
+		args:
+			tour: List of nodes forming a cycle
+		return:
+			tour: List of nodes forming a cycle
+				Three optimal tour
+			tourlen: int/float
+				Length of three optimal tour
 		"""
 		n = len(tour)
 		if n <= 2:
+			# no cycle possible
 			return [], 0
 
+		# length of provided tour
 		tourlen = self.calculateTourLength(tour)
+
+		# tracking improvemnt in tour
 		improved = True
+
 		while improved:
+
 			improved = False
 			for i in range(n):
 				for j in range(i+2, n-1):
@@ -218,6 +297,8 @@ class TSP(Graph):
 						c, d = tour[j], tour[j+1]
 						e, f = tour[k], tour[k+1]
 
+						# possible cases of removing three edges 
+						# and adding three
 						deltacase = {
 							1: self.edges[a,e] + self.edges[b,f] \
 								- self.edges[a,b] - self.edges[e,f],
@@ -241,6 +322,7 @@ class TSP(Graph):
 								- self.edges[a,b] - self.edges[c,d] - self.edges[e,f],
 						}
 
+						# get the case with most benefit
 						bestcase = min(deltacase, key=deltacase.get)
 
 						if deltacase[bestcase] < 0:

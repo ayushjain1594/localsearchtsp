@@ -2,7 +2,11 @@ from tsp import TSP
 from pandas import DataFrame, set_option
 import time
 
-def createRandomCompleteGraph(n):
+def createRandomCompleteGraph(n, symmetric=False):
+	"""
+	create a complete symmetric graph with 
+	random edge weight
+	"""
 	from random import randint
 	v = [i for i in range(1, n+1)]
 
@@ -16,7 +20,11 @@ def createRandomCompleteGraph(n):
 				e.append((i,j,w))
 				e.append((j,i,w))
 				M[ind1][ind2] = w
-				M[ind2][ind1] = w
+				if symmetric:
+					M[ind2][ind1] = w
+				else:
+					w = randint(1, 100)
+					M[ind2][ind1] = w
 				ind2 += 1
 
 	import numpy as np
@@ -26,6 +34,13 @@ def createRandomCompleteGraph(n):
 
 
 def callAndTime(input_):
+	"""
+	Wrapper for calling and timing a function
+	args:
+		input: List 
+			func at zeroth index and
+			rest are arguments
+	"""
 	func= input_[0]
 	args = input_[1:]
 	
@@ -36,6 +51,13 @@ def callAndTime(input_):
 
 
 def test2(n=50):
+	"""
+	Given number of nodes -
+	Test greedy tour using default starting node, 
+	two optimal tour using greedy tour
+	three optimal tour using greedy tour 
+	three optimal tour using two optimal tour
+	"""
 	v, e, M = createRandomCompleteGraph(n)
 	tsp = TSP(v, e)
 
@@ -57,8 +79,14 @@ def test2(n=50):
 
 
 def testResultDataFrame(rows, columns=None):
+	"""
+	Generic function to create pandas dataframe
+	on results of different test runs 
+	with different starting node
+	"""
 	if columns == None:
-		columns_ = ["GreedyTour", "TwoOPT", "ThreeOPT_Greedy", 
+		columns_ = ["StartNode", "GreedyTour", 
+		"TwoOPT", "ThreeOPT_Greedy", 
 		"Time1", "ThreeOPT_TwoOPT", "Time2"]
 	else:
 		columns_ = columns
@@ -68,13 +96,19 @@ def testResultDataFrame(rows, columns=None):
 	set_option('display.max_columns', None)
 	print(df)
 
-	print(f"GREEDY SOL value = {df.GreedyTour.mean()}")
-	print(f"2 OPT SOL value = {df.TwoOPT.mean()}")
-	print(f"3 OPT FROM GREEDY SOL value = {df['ThreeOPT_Greedy'].mean()}  time = {df.Time1.mean()}")
-	print(f"3 OPT FROM 2 OPT SOL value = {df['ThreeOPT_TwoOPT'].mean()} time = {df.Time2.mean()}")
+	df.to_csv('sampleresult.csv', index=False)
+
+	print(f"GREEDY SOL AVG LENGTH = {df.GreedyTour.mean()}")
+	print(f"2 OPT SOL AVG LENGTH = {df.TwoOPT.mean()}")
+	print(f"3 OPT FROM GREEDY SOL AVG LENGTH = {df['ThreeOPT_Greedy'].mean()}  time = {df.Time1.mean()}")
+	print(f"3 OPT FROM 2 OPT SOL AVG LENGTH = {df['ThreeOPT_TwoOPT'].mean()} time = {df.Time2.mean()}")
 
 
 def test3(n=30, tsp_object=None):
+	"""
+	Test sequentially over all possible starting
+	node
+	"""
 	if isinstance(tsp_object, TSP):
 		tsp = tsp_object
 	else:
@@ -88,15 +122,19 @@ def test3(n=30, tsp_object=None):
 		(threeopttour1, threeoptlen1), time1 = callAndTime((tsp.threeOPT, greedytour))
 		(threeopttour2, threeoptlen2), time2 = callAndTime((tsp.threeOPT, twoopttour))
 		rows.append(
-			[greedytourlen,
+			[v_, greedytourlen,
 			twooptlen,
 			threeoptlen1, time1,
 			threeoptlen2, time2]
 		)
-	#testResultDataFrame(rows)
+	testResultDataFrame(rows)
 
 
 def test4(n=30, tsp_object=None):
+	"""
+	Test concurrently over all possible 
+	starting node using multiprocessing module
+	"""
 	if isinstance(tsp_object, TSP):
 		tsp = tsp_object
 	else:
@@ -104,13 +142,11 @@ def test4(n=30, tsp_object=None):
 		tsp = TSP(v, e)
 	rows = []
 
-	start = time.time()
 	from multiprocessing import Pool
 	from itertools import product
-	end = time.time() - start
-	print(f"Took {end} to load Pool and Product")
+
 	
-	p = Pool(n)
+	p = Pool(8)
 	greedysol = p.map(tsp.greedyTour, tsp.nodes)
 	twooptsol = p.map(tsp.twoOPT, [sol[0] for sol in greedysol])
 	threeoptsol1 = p.map(callAndTime, [(tsp.threeOPT, sol[0]) for sol in greedysol])
@@ -118,7 +154,8 @@ def test4(n=30, tsp_object=None):
 
 	for ind in range(n):
 		rows.append(
-			[greedysol[ind][1], 
+			[tsp.nodes[ind],
+			greedysol[ind][1], 
 			twooptsol[ind][1],
 			threeoptsol1[ind][0][1], threeoptsol1[ind][1],
 			threeoptsol2[ind][0][1], threeoptsol2[ind][1]]
@@ -126,7 +163,7 @@ def test4(n=30, tsp_object=None):
 	testResultDataFrame(rows)
 
 
-def test5(n=50):
+def test6(n=50):
 	v, e, M = createRandomCompleteGraph(n)
 	tsp = TSP(v, e)
 	#ret, time = callAndTime((test3, n, tsp))
@@ -137,4 +174,4 @@ def test5(n=50):
 
 
 if __name__ == '__main__':
-	test5()
+	test6()
