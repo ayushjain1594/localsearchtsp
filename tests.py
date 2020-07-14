@@ -50,7 +50,7 @@ def callAndTime(input_):
 	return ret, timetaken
 
 
-def test2(n=50):
+def test2(n=500):
 	"""
 	Given number of nodes -
 	Test greedy tour using default starting node, 
@@ -62,12 +62,12 @@ def test2(n=50):
 	tsp = TSP(v, e)
 
 	print("Greedy tour")
-	greedytour, greedytourlen = tsp.greedyTour()
-	print(greedytour, greedytourlen)
+	(greedytour, greedytourlen), time = callAndTime((tsp.greedyTour,)) 
+	print(greedytour, greedytourlen, time)
 
 	print("\n2OPT")
-	twoopttour, twooptlen = tsp.twoOPT(greedytour)
-	print(twoopttour, twooptlen)
+	(twoopttour, twooptlen), time = callAndTime((tsp.twoOPT, greedytour))
+	print(twoopttour, twooptlen, time)
 
 	print("\n3OPT Using greedytour")
 	(threeopttour, threeoptlen), time = callAndTime((tsp.threeOPT, greedytour))
@@ -174,4 +174,4 @@ def test6(n=50):
 
 
 if __name__ == '__main__':
-	test6()
+	test2()

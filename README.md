@@ -42,8 +42,5 @@ threeopttour = tsp.threeOPT(tour)
 ```
 
 ## Running time
-Greedy Nearest-Neighbor:
-Sorting adjacency list with n vertex and complete graph is *O(n^2 x logn)*. Finding a nearest neighbor tour is merely adding *O(n)* nodes with edge weight lookup for *O(1)*. Total running time is no worse than *O(n^2 x logn)*.
-
 Improvement Heuristics - 2OPT and 3OPT:
 The running time of improvement algorithms primarily depend on number of neighborhoods they are search for better solution. If swapping edges and updating tour length is constant time, running time of 2 OPT and 3 OPT is approximately *O(n^2)* and *O(n^3)* respectively.
